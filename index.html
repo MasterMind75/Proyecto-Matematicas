@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Proyecto Matematicas</title>
+  <style>
+    :root{
+        --bg:#0f1724;
+        --card:#0b1220;
+        --accent:#06b6d4;
+        --muted:#94a3b8;
+        --good:#16a34a;
+        --bad:#dc2626
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+        margin:0;
+        font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        background:linear-gradient(180deg,#071028 0%, #071427 100%);
+        color:#e6eef6;min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:24px
+    }
+
+    .wrap{
+        width:100%;
+        max-width:900px
+    }
+
+    header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom:18px
+    }
+
+    header h1{font-size:20px;margin:0}
+
+    .money{
+        font-weight:700;
+        color:var(--accent)
+    }
+
+    .game{
+        display:grid;
+        grid-template-columns:1fr 320px;
+        gap:18px
+    }
+
+    .card{
+        background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        padding:20px;border-radius:12px;
+        box-shadow:0 8px 30px rgba(2,6,23,0.6)
+    }
+
+    .question{
+        font-size:18px;
+        margin-bottom:12px
+    }
+
+    .choices{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px
+    }
+
+    .choice{
+        background:#0d2a4d;border:1px solid rgba(255,255,255,0.08);
+        padding:12px;
+        border-radius:8px;
+        cursor:pointer;transition:transform .12s, box-shadow .12s;
+        display:flex;
+        align-items:center;
+        color:#e6eef6
+    }
+
+    .choice:hover{
+        transform:translateY(-3px);
+        box-shadow:0 8px 20px rgba(2,6,23,0.6)
+    
+    }
+    .choice.disabled{
+        opacity:.6;
+        pointer-events:none
+    }
+
+    .choice.correct{
+        outline:3px solid rgba(22,163,74,0.12);
+        background:linear-gradient(90deg, rgba(22,163,74,0.08), rgba(22,163,74,0.03))
+    }
+
+    .choice.wrong{
+        outline:3px solid rgba(220,38,38,0.12);
+        background:linear-gradient(90deg, rgba(220,38,38,0.06), rgba(220,38,38,0.03))
+    }
+
+    .sidebar{
+        display:flex;
+        flex-direction:column;
+        gap:12px
+    }
+
+    .ladder{
+        list-style:none;
+        padding:12px;
+        margin:0;
+        background:transparent;
+        border-radius:8px
+    }
+
+    .ladder li{
+        display:flex;
+        justify-content:space-between;
+        padding:8px;
+        border-radius:6px;
+        color:var(--muted)
+    }
+
+    .ladder li.current{
+        background:rgba(6,182,212,0.06);
+        color:var(--accent);
+        font-weight:700
+    }
+
+    .footer{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-top:14px
+    }
+
+    button{
+        background:var(--accent);
+        border:0;padding:10px 14px;
+        border-radius:8px;
+        color:#00121a;
+        font-weight:700;
+        cursor:pointer
+    }
+
+    button.ghost{
+        background:transparent;
+        border:1px solid rgba(255,255,255,0.06);
+        color:var(--muted)
+    }
+
+    .explanation{
+        margin-top:12px;
+        color:var(--muted);
+        font-size:14px
+    }
+
+    .result{
+        font-size:20px;
+        font-weight:800;
+        color:var(--accent);
+        text-align:center;
+        padding:18px
+    }
+
+    @media(max-width:800px){.game{grid-template-columns:1fr;}.sidebar{order:2}}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Concurso — Parábolas y Elipses</h1>
+      <div class="money">Dinero actual: <span id="current-money">$0</span></div>
+    </header>
+
+    <main class="game">
+      <section class="card">
+        <div id="qbox">
+          <div class="question" id="question">Cargando pregunta...</div>
+          <div class="choices" id="choices"></div>
+        </div>
+          <div class="explanation" id="explanation" aria-live="polite"></div>
+
+        <div class="footer">
+          <button id="nextBtn" class="ghost" disabled>Siguiente</button>
+          
+        </div>
+      </section>
+
+      <aside class="sidebar card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Progreso</strong>
+          <small id="qcount">Pregunta 0/5</small>
+        </div>
+        <ul class="ladder" id="ladder"></ul>
+        <div style="margin-top:10px">
+          <div style="font-size:13px;color:var(--muted)">Reglas rápidas:</div>
+          <ul style="margin:6px 0 0 18px;color:var(--muted);font-size:13px">
+            <li>5 preguntas totales.</li>
+            <li>Responde, si aciertas sumas el premio.</li>
+            <li>Si fallas, el juego termina y te llevas lo acumulado.</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <div id="endModal" class="card" style="margin-top:14px;display:none">
+      <div class="result" id="finalText"></div>
+      <div style="text-align:center;margin-top:6px">
+        <button id="playAgain">Jugar otra vez</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        q: '¿Cuál es la forma canónica de una parábola con vértice en (0,0) que abre hacia arriba y tiene foco en (0,2)?',
+        choices: ['x²=8y','y²=8x','x²=4y','y²=4x'],
+        correct: 0,
+        explain: 'La distancia del vértice al foco es p=2. La parábola vertical canónica es x²=4py → x²=4*2*y = 8y.'
+      },
+      {
+        q: 'Cual de las siguientes puede parecer un circulo aplastado?',
+        choices: ['Hipérbola','Elipse','Parábola','Ninguna'],
+        correct: 1,
+        explain: 'Un círculo es una elipse cuyo semieje mayor y menor son iguales (a=b).'
+      },
+      {
+        q: 'Que representa el foco en la parabola?',
+        choices: ['a','b²','p','e'],
+        correct: 2,
+        explain: 'En la forma para obtener los elementos de una elipse, a "p" siempre se le atribuye el foco siendo (h+-p,k) o (h,k+-p) dependiendo de si es vertical o horizontal'
+      },
+      {
+        q: 'Si una parábola tiene ecuación (x-2)²=12(y+1), ¿dónde está su foco?',
+        choices: ['(2,2)','(2,3)','(6,3)','(4,3)'],
+        correct: 0,
+        explain: 'Tenemos (x-h)²=4p(y-k). Aquí 4p=12 → p=3. Vértice (2,-1). Foco: (h, k+p) = (2, -1+3) = (2,2).'
+      },
+      {
+        q: 'Para una elipse con focos en (−c,0) y (c,0) y semiejes a y b (a>b), ¿qué relación define la excentricidad e?',
+        choices: ['e=c/a','e=a/c','e=b/a','e=c/b'],
+        correct: 0,
+        explain: 'La excentricidad se define como e=c/a, donde c^2=a^2-b^2.'
+      }
+    ];
+
+    const prizes = [100,200,500,1000,2000];
+    let idx = 0;
+    let money = 0;
+    const questionEl = document.getElementById('question');
+    const choicesEl = document.getElementById('choices');
+    const explanationEl = document.getElementById('explanation');
+    const currentMoneyEl = document.getElementById('current-money');
+    const qcountEl = document.getElementById('qcount');
+    const ladderEl = document.getElementById('ladder');
+    const nextBtn = document.getElementById('nextBtn');
+    const endModal = document.getElementById('endModal');
+    const finalText = document.getElementById('finalText');
+    const playAgain = document.getElementById('playAgain');
+
+    function renderLadder(){
+      ladderEl.innerHTML = '';
+      for(let i=prizes.length-1;i>=0;i--){
+        const li = document.createElement('li');
+        li.textContent = `Q${i+1}`;
+        const span = document.createElement('span');
+        span.textContent = `$${prizes[i]}`;
+        li.appendChild(span);
+        if(i===idx) li.classList.add('current');
+        ladderEl.appendChild(li);
+      }
+    }
+
+    function renderQuestion(){
+      const item = questions[idx];
+      qcountEl.textContent = `Pregunta ${idx+1}/${questions.length}`;
+      questionEl.innerHTML = item.q;
+      choicesEl.innerHTML = '';
+      explanationEl.textContent = '';
+      nextBtn.disabled = true;
+
+      item.choices.forEach((c,i)=>{
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.innerHTML = `<span style="margin-right:8px;font-weight:700">${String.fromCharCode(65+i)}.</span> <span>${c}</span>`;
+        btn.addEventListener('click', () => selectAnswer(i, btn));
+        choicesEl.appendChild(btn);
+      });
+
+      renderLadder();
+    }
+
+    function selectAnswer(choiceIndex, btn){
+      const item = questions[idx];
+      const all = Array.from(document.querySelectorAll('.choice'));
+      all.forEach(b=>b.classList.add('disabled'));
+      if(choiceIndex===item.correct){
+        btn.classList.add('correct');
+        money += prizes[idx];
+        currentMoneyEl.textContent = `$${money}`;
+        explanationEl.textContent = `Correcto ✅ — ${item.explain}`;
+        nextBtn.disabled = false;
+        if(idx===questions.length-1){
+          nextBtn.textContent = 'Finalizar';
+        } else {
+          nextBtn.textContent = 'Siguiente';
+        }
+      } else {
+        btn.classList.add('wrong');
+        const correctBtn = all[item.correct];
+        if(correctBtn) correctBtn.classList.add('correct');
+        explanationEl.textContent = `Incorrecto ✖️ — ${item.explain}`;
+        setTimeout(()=>endGame(false),800);
+      }
+    }
+
+    function nextQuestion(){
+      if(idx < questions.length-1){
+        idx++;
+        renderQuestion();
+      } else {
+        endGame(true);
+      }
+    }
+
+    function endGame(wonAll){
+      document.getElementById('qbox').style.display = 'none';
+      endModal.style.display = 'block';
+      if(wonAll){
+        finalText.innerHTML = `¡Felicidades! Ganaste <span style="color:var(--good)">$${money}</span> 🎉`;
+      } else {
+        finalText.innerHTML = `Juego terminado. Te llevas <span style="color:var(--accent)">$${money}</span>`;
+      }
+    }
+
+    function resetGame(){
+      idx = 0; money = 0;
+      currentMoneyEl.textContent = `$0`;
+      document.getElementById('qbox').style.display = 'block';
+      endModal.style.display = 'none';
+      renderQuestion();
+    }
+
+    nextBtn.addEventListener('click', () => {
+      nextQuestion();
+    });
+    playAgain.addEventListener('click', resetGame);
+
+    renderQuestion();
+  </script>
+</body>
+</html>
